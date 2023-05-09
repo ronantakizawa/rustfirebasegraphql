@@ -1,4 +1,4 @@
-This is a basic rust GraphQL server that uses a JSON file as the database. 
+This is a Rust GraphQL server that connects with Firebase. 
 It only has one query, which is getting all the data from the JSON file
 
 Setup:

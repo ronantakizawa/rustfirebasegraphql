@@ -1,21 +1,30 @@
+use std::collections::HashMap;
+
+use firebase_rs::Firebase;
 // graphql_schema.rs
-#[macro_use]
-use juniper::{EmptyMutation, RootNode, FieldResult};
-use serde_json::{Result, Value};
-use std::fs::File;
-use std::io::prelude::*;
-  
-struct Member {
+use juniper::{RootNode};
+use serde::{Serialize, Deserialize};
+use dotenv::dotenv;
+
+
+
+#[derive(Serialize,Deserialize,Debug)]
+struct User {
   first_name: String,
   last_name: String,
   email:String,
   password:String
 }
 
+#[derive(Serialize,Deserialize,Debug)]
+struct Response{
+    name:String
+}
 
 
-#[juniper::object(description = "A member of a team")]
-    impl Member {
+
+#[juniper::object(description = "User")]
+    impl User {
       pub fn first_name(&self) -> &str {
         self.first_name.as_str()
       }
@@ -34,35 +43,98 @@ struct Member {
 
 pub struct QueryRoot;
 
-
 #[juniper::object]
+#[firebase_rs::Firebase]
 impl QueryRoot {
-  fn members() -> Vec<Member> {
-    let mut file = File::open("/Users/ronantakizawa/Documents/Personal CS projects/rust/rustpractice/src/data.json").expect("Could not read file");
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Could not read file");
-    let data:Value = serde_json::from_str(&contents).expect("Could not read file");
-    let mut num_members: usize = data.as_array().unwrap().len();
-    let mut vec:Vec<Member> = Vec::new();
-    for n in 0..num_members{
-      let new_member: Member = Member {
-        first_name: data[n]["first_name"].to_string().replace("\"", "").to_owned(),
-        last_name:data[n]["last_name"].to_string().replace("\"", "").to_owned(),
-        email: data[n]["email"].to_string().replace("\"", "").to_owned(),
-        password:data[n]["password"].to_string().replace("\"", "").to_owned(),
+  fn getAllUsers() -> Vec<User> {
+    dotenv().ok();
+    let link = std::env::var("DATABASE_LINK").expect("MAILCOACH_API_TOKEN must be set.");
+    let firebase: Firebase = Firebase::new(&link).unwrap();
+    let mut vec:Vec<User> = Vec::new();
+    let users: HashMap<String, User> = get_users(&firebase);
+    for value in users.values(){
+      let new_user: User = User {
+        first_name: value.first_name.to_owned(),
+        last_name:value.last_name.to_owned(),
+        email: value.email.to_owned(),
+        password:value.password.to_owned(),
       };
-      vec.push(new_member);
+      vec.push(new_user);
     }
     return vec;
+    }
+    fn findUser(user_id:String) -> User {
+      dotenv().ok();
+      let link = std::env::var("DATABASE_LINK").expect("MAILCOACH_API_TOKEN must be set.");
+      let firebase: Firebase = Firebase::new(&link).unwrap();
+      let user:User = get_user(&firebase,&user_id.to_owned());
+      return user;
+      }
     
 }
 
+pub struct MutationRoot;
+
+#[juniper::object]
+#[firebase_rs::Firebase]
+impl MutationRoot {
+  fn createUser(input_first_name:String,input_last_name:String,input_email:String,input_password:String) -> User {
+    dotenv().ok();
+    let link = std::env::var("DATABASE_LINK").expect("MAILCOACH_API_TOKEN must be set.");
+    let firebase: Firebase = Firebase::new(&link).unwrap();
+    let new_user = User {
+      first_name: input_first_name.to_string(),
+      last_name:input_last_name.to_string(),
+      email:input_email.to_string(),
+      password:input_password.to_string()
+    };
+    let response = set_user(&firebase, &new_user);
+
+    return new_user;
+    }
+    
 }
 
 
 
-pub type Schema = RootNode<'static, QueryRoot, EmptyMutation<()>>;
+
+
+
+
+#[tokio::main]
+async fn get_users(firebase_client: &Firebase) -> HashMap<String, User>{
+  let firebase: Firebase = firebase_client.at("users");
+  let users: Result<HashMap<String, User>, firebase_rs::errors::RequestError> = firebase.get::<HashMap<String, User>>().await;
+  return users.unwrap();
+}
+
+#[tokio::main]
+async fn get_user(firebase_client: &Firebase, id: &String) -> User{
+  let firebase = firebase_client.at("users").at(&id);
+  let user = firebase.get::<User>().await;
+  return user.unwrap();
+}
+
+#[tokio::main]
+async fn set_user(firebase_client: &Firebase, user: &User) -> Response{
+  let firebase = firebase_client.at("users");
+  let _users = firebase.set::<User>(&user).await;
+  return string_to_response(&_users.unwrap().data);
+}
+
+
+fn string_to_response(s: &str) -> Response{
+  serde_json::from_str(s).unwrap()
+}
+
+
+
+
+
+
+
+pub type Schema = RootNode<'static, QueryRoot, MutationRoot>;
     
 pub fn create_schema() -> Schema {
-  Schema::new(QueryRoot {}, EmptyMutation::new())
+  Schema::new(QueryRoot {}, MutationRoot {})
 }
