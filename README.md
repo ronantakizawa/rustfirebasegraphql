@@ -3,7 +3,7 @@ It can get all users from the database, a chosen user from the database, and add
 
 Setup:
 
--      git clone https://github.com/ronantakizawa/rustgraphqlserver.git  
+-      git clone https://github.com/ronantakizawa/rustfirebasegraphql.git  
 -      cargo install
 
 Add .env file in root of directory for your firebase realtime database URL. 
