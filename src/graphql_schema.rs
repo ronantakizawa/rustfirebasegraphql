@@ -48,7 +48,7 @@ pub struct QueryRoot;
 impl QueryRoot {
   fn getAllUsers() -> Vec<User> {
     dotenv().ok();
-    let link = std::env::var("DATABASE_LINK").expect("MAILCOACH_API_TOKEN must be set.");
+    let link = std::env::var("DATABASE_LINK").expect("DATABASE_LINK must be set.");
     let firebase: Firebase = Firebase::new(&link).unwrap();
     let mut vec:Vec<User> = Vec::new();
     let users: HashMap<String, User> = get_users(&firebase);
@@ -65,7 +65,7 @@ impl QueryRoot {
     }
     fn findUser(user_id:String) -> User {
       dotenv().ok();
-      let link = std::env::var("DATABASE_LINK").expect("MAILCOACH_API_TOKEN must be set.");
+      let link = std::env::var("DATABASE_LINK").expect("DATABASE_LINK must be set.");
       let firebase: Firebase = Firebase::new(&link).unwrap();
       let user:User = get_user(&firebase,&user_id.to_owned());
       return user;
@@ -80,7 +80,7 @@ pub struct MutationRoot;
 impl MutationRoot {
   fn createUser(input_first_name:String,input_last_name:String,input_email:String,input_password:String) -> User {
     dotenv().ok();
-    let link = std::env::var("DATABASE_LINK").expect("MAILCOACH_API_TOKEN must be set.");
+    let link = std::env::var("DATABASE_LINK").expect("DATABASE_LINK must be set.");
     let firebase: Firebase = Firebase::new(&link).unwrap();
     let new_user = User {
       first_name: input_first_name.to_string(),
