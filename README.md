@@ -1,4 +1,4 @@
-This is a Rust GraphQL server that connects with a firebase realtime database
+This is a Rust GraphQL server skeleton that connects with a firebase realtime database
 It can get all users from the database, a chosen user from the database, and add a user to the database. 
 
 Setup:
